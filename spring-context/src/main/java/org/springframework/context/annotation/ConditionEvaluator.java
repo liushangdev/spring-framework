@@ -78,6 +78,9 @@ class ConditionEvaluator {
 	 * @return if the item should be skipped
 	 */
 	public boolean shouldSkip(@Nullable AnnotatedTypeMetadata metadata, @Nullable ConfigurationPhase phase) {
+		//此处判断我们的注解源数据里面是否有 Conditional 注解，我们自己实现的注解里面是标注了这个注解，
+		//spring 是在什么时候拿到的呢，就是在获取MetadataReader对象的时候，依赖字节码技术读取class文件
+		//获取注解元数据的，最后会放到attitudesMap这个集合中，
 		if (metadata == null || !metadata.isAnnotated(Conditional.class.getName())) {
 			return false;
 		}
@@ -105,6 +108,7 @@ class ConditionEvaluator {
 			if (condition instanceof ConfigurationCondition) {
 				requiredPhase = ((ConfigurationCondition) condition).getConfigurationPhase();
 			}
+			//此处真正的实现方法调用返回匹配结果
 			if ((requiredPhase == null || requiredPhase == phase) && !condition.matches(this.context, metadata)) {
 				return true;
 			}

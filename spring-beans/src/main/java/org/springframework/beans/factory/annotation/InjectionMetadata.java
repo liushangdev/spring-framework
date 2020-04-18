@@ -87,6 +87,7 @@ public class InjectionMetadata {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Processing injected element of bean '" + beanName + "': " + element);
 				}
+				//此处其实就是反射，调用被注入属性(Field)的set方法
 				element.inject(target, beanName, pvs);
 			}
 		}

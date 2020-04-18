@@ -262,9 +262,11 @@ class ConfigurationClassParser {
 			throws IOException {
 
 		// Recursively process any member (nested) classes first
+		//解析是否有内部类
 		processMemberClasses(configClass, sourceClass);
 
 		// Process any @PropertySource annotations
+		//解析PropertySources注解
 		for (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), PropertySources.class,
 				org.springframework.context.annotation.PropertySource.class)) {
@@ -278,6 +280,8 @@ class ConfigurationClassParser {
 		}
 
 		// Process any @ComponentScan annotations
+		//解析ComponentScans注解，扫描注解指定的路径下所有的类，此时你应该知道
+		//你的component、service、repository等注解的类就是在这里被解析的
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
 		if (!componentScans.isEmpty() &&

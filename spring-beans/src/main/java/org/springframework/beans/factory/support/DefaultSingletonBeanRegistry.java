@@ -151,8 +151,10 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
 		synchronized (this.singletonObjects) {
 			if (!this.singletonObjects.containsKey(beanName)) {
+				//添加到单例对象工厂缓存
 				this.singletonFactories.put(beanName, singletonFactory);
 				this.earlySingletonObjects.remove(beanName);
+				//已经注册的单例集合，按注册顺序包含beanName
 				this.registeredSingletons.add(beanName);
 			}
 		}
@@ -174,15 +176,22 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+		//查看缓存单例对象中是否存在指定的bean
 		Object singletonObject = this.singletonObjects.get(beanName);
+		//判断缓存的对象是否为空和当前bean是否在创建过程中（这个地方和Spring解决循环依赖有关系）
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			synchronized (this.singletonObjects) {
+				//earlySingletonObjects早期的单例对象，可能还没初始化完成
 				singletonObject = this.earlySingletonObjects.get(beanName);
 				if (singletonObject == null && allowEarlyReference) {
+					//singletonFactories单例工厂缓存
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 					if (singletonFactory != null) {
+						//从单例工厂获取bean实例
 						singletonObject = singletonFactory.getObject();
+						//把获取到的实例放入早期的单例对象缓存
 						this.earlySingletonObjects.put(beanName, singletonObject);
+						//从单例工厂删除，因为上面已经获取到了单例对象
 						this.singletonFactories.remove(beanName);
 					}
 				}
@@ -212,6 +221,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+				//此处会把当前单例bean，添加到创建中集合，用来判断bean是否在创建过程中
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -219,6 +229,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+					//调用beanFactory的createBean方法
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}

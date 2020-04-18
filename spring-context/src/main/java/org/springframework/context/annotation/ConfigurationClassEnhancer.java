@@ -348,6 +348,10 @@ class ConfigurationClassEnhancer {
 				}
 			}
 
+			//判断当前调用的方法和被调用方法是否是同一个方法，来解决是否是第一次调用
+			//a方法是目标方法，b方法调用了a方法，所以b方法时代理方法
+			//a()
+			//b(a())
 			if (isCurrentlyInvokedFactoryMethod(beanMethod)) {
 				// The factory is calling the bean method in order to instantiate and register the bean
 				// (i.e. via a getBean() call) -> invoke the super implementation of the method to actually

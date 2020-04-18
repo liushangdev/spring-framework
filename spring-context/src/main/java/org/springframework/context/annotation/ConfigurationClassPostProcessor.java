@@ -251,6 +251,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			processConfigBeanDefinitions((BeanDefinitionRegistry) beanFactory);
 		}
 
+		//产生cglib代理
 		enhanceConfigurationClasses(beanFactory);
 		beanFactory.addBeanPostProcessor(new ImportAwareBeanPostProcessor(beanFactory));
 	}
@@ -261,8 +262,13 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	 */
 	public void processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
 		List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
+		//获取spring容器中所有的bean的名称，此处获取的应该只有spring自己定义的beanName
+		//因为我们自己写的还没被扫描到，但是有一个我们配置的config文件会在里面
+		//是我们在初始化applicationContext的时候传入的
 		String[] candidateNames = registry.getBeanDefinitionNames();
 
+		//循环beanName，找到configuration配置类，并设置full、lite属性，
+		// 这两个属性是为了给configuration配置类生成动态代理如果是full则用cglib代理配置类
 		for (String beanName : candidateNames) {
 			BeanDefinition beanDef = registry.getBeanDefinition(beanName);
 			if (ConfigurationClassUtils.isFullConfigurationClass(beanDef) ||
@@ -282,6 +288,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 
 		// Sort by previously determined @Order value, if applicable
+		//根据实现的order接口来排序
 		configCandidates.sort((bd1, bd2) -> {
 			int i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
 			int i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
@@ -289,6 +296,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		});
 
 		// Detect any custom bean name generation strategy supplied through the enclosing application context
+		//这里应该是检查有没有自定义的beanName生成器，如果有则使用自定义的，我们的beanName其实是有一个类来生成的
+		//可以通过实现BeanNameGenerator接口来自定义beanName的规则
 		SingletonBeanRegistry sbr = null;
 		if (registry instanceof SingletonBeanRegistry) {
 			sbr = (SingletonBeanRegistry) registry;
@@ -306,6 +315,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		}
 
 		// Parse each @Configuration class
+		//创建configuration类的解析器，主要用来解析标注了configuration注解的配置类
+		//解析里面的注解：componentScan、Bean、import等等
 		ConfigurationClassParser parser = new ConfigurationClassParser(
 				this.metadataReaderFactory, this.problemReporter, this.environment,
 				this.resourceLoader, this.componentScanBeanNameGenerator, registry);
@@ -313,6 +324,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+			//这个解析方法就是精髓所在，里面会把我们再config文件里面配置的componentScan注解解析
+			//扫描指定路径下面所有的class，确定是否添加了注解，获取注解元数据
+			//获取里面所有的普通bean，并注册到spirng 容器当中，注意是普通bean。
 			parser.parse(candidates);
 			parser.validate();
 
@@ -372,6 +386,8 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Map<String, AbstractBeanDefinition> configBeanDefs = new LinkedHashMap<>();
 		for (String beanName : beanFactory.getBeanDefinitionNames()) {
 			BeanDefinition beanDef = beanFactory.getBeanDefinition(beanName);
+			//判断是否是全配置类（添加了@Configuration注解），如果是则进行cglib代理
+			//为了解决config类里面bean的单例问题，保证@bean返回对象的作用域是单例
 			if (ConfigurationClassUtils.isFullConfigurationClass(beanDef)) {
 				if (!(beanDef instanceof AbstractBeanDefinition)) {
 					throw new BeanDefinitionStoreException("Cannot enhance @Configuration bean definition '" +

@@ -124,6 +124,7 @@ public class AnnotationAttributes extends LinkedHashMap<String, Object> {
 	 */
 	public AnnotationAttributes(String annotationType, @Nullable ClassLoader classLoader) {
 		Assert.notNull(annotationType, "'annotationType' must not be null");
+		//通过类加载器加载类：com.lsh.spring.XXX
 		this.annotationType = getAnnotationType(annotationType, classLoader);
 		this.displayName = annotationType;
 	}
